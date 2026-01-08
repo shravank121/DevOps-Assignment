@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for FastAPI Backend
 
 # Stage 1: Build stage
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 # Stage 2: Production stage
-FROM python:3.11-slim as production
+FROM python:3.11-slim AS production
 
 # Create non-root user for security
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
