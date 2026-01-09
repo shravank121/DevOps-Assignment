@@ -137,8 +137,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -148,8 +148,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_IMAGE }}:latest
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.AZURE_BACKEND_URL }}
           cache-from: type=gha
