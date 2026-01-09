@@ -7,6 +7,8 @@ on:
 env:
   AWS_REGION: ap-south-1
   AZURE_REGION: eastus
+  AZURE_REGISTRY: devopsacrshravan.azurecr.io
+  AZURE_RESOURCE_GROUP: devops-rg
   BACKEND_IMAGE: devops-backend
   FRONTEND_IMAGE: devops-frontend
 
@@ -79,11 +81,11 @@ jobs:
         run: |
           az containerapp create \
             --name devops-backend \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
             --target-port 8000 \
             --ingress external \
-            --registry-server ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }} \
+            --registry-server ${{ env.AZURE_REGISTRY }} \
             --registry-username ${{ secrets.AZURE_REGISTRY_USERNAME }} \
             --registry-password ${{ secrets.AZURE_REGISTRY_PASSWORD }} \
             --environment devops-env \
@@ -93,15 +95,15 @@ jobs:
             --output tsv || \
           az containerapp update \
             --name devops-backend \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Get Backend URL
         id: backend-url
         run: |
           URL=$(az containerapp show \
             --name devops-backend \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --query properties.configuration.ingress.fqdn \
             --output tsv)
           echo "url=https://$URL" >> $GITHUB_OUTPUT
@@ -110,11 +112,11 @@ jobs:
         run: |
           az containerapp create \
             --name devops-frontend \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
             --target-port 3000 \
             --ingress external \
-            --registry-server ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }} \
+            --registry-server ${{ env.AZURE_REGISTRY }} \
             --registry-username ${{ secrets.AZURE_REGISTRY_USERNAME }} \
             --registry-password ${{ secrets.AZURE_REGISTRY_PASSWORD }} \
             --environment devops-env \
@@ -123,8 +125,8 @@ jobs:
             --min-replicas 1 --max-replicas 3 || \
           az containerapp update \
             --name devops-frontend \
-            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
             --set-env-vars "NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}"
 
   # ==================== POST-DEPLOYMENT ====================

@@ -9,6 +9,7 @@ on:
 env:
   AWS_REGION: ap-south-1
   AZURE_REGION: eastus
+  AZURE_REGISTRY: devopsacrshravan.azurecr.io
   BACKEND_IMAGE: devops-backend
   FRONTEND_IMAGE: devops-frontend
 
@@ -129,7 +130,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to Azure Container Registry
-        run: az acr login --name ${{ secrets.AZURE_REGISTRY_NAME }}
+        run: az acr login --name devopsacrshravan
 
       - name: Build and push backend to Azure
         uses: docker/build-push-action@v5
@@ -137,8 +138,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.AZURE_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ env.AZURE_REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -148,8 +149,8 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-            ${{ secrets.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.AZURE_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ env.AZURE_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.AZURE_BACKEND_URL }}
           cache-from: type=gha
