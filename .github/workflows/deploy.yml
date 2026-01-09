@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: ap-south-1
-  GCP_REGION: asia-south1
+  AZURE_REGION: eastus
   BACKEND_IMAGE: devops-backend
   FRONTEND_IMAGE: devops-frontend
 
@@ -61,61 +61,77 @@ jobs:
             --services frontend-service \
             --region ${{ env.AWS_REGION }}
 
-  # ==================== DEPLOY TO GCP ====================
-  deploy-gcp:
-    name: Deploy to GCP Cloud Run
+  # ==================== DEPLOY TO AZURE ====================
+  deploy-azure:
+    name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Login to Azure
+        uses: azure/login@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Deploy Backend to Cloud Run
+      - name: Deploy Backend to Azure Container Apps
         run: |
-          gcloud run deploy devops-backend \
-            --image ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/devops-repo/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.GCP_REGION }} \
-            --allow-unauthenticated \
-            --port 8000 \
-            --min-instances 2 \
-            --max-instances 10 \
-            --memory 512Mi \
-            --cpu 1
+          az containerapp create \
+            --name devops-backend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
+            --target-port 8000 \
+            --ingress external \
+            --registry-server ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }} \
+            --registry-username ${{ secrets.AZURE_REGISTRY_USERNAME }} \
+            --registry-password ${{ secrets.AZURE_REGISTRY_PASSWORD }} \
+            --environment devops-env \
+            --cpu 0.5 --memory 1.0Gi \
+            --min-replicas 1 --max-replicas 3 \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv || \
+          az containerapp update \
+            --name devops-backend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Get Backend URL
         id: backend-url
         run: |
-          URL=$(gcloud run services describe devops-backend --region ${{ env.GCP_REGION }} --format 'value(status.url)')
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          URL=$(az containerapp show \
+            --name devops-backend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          echo "url=https://$URL" >> $GITHUB_OUTPUT
 
-      - name: Deploy Frontend to Cloud Run
+      - name: Deploy Frontend to Azure Container Apps
         run: |
-          gcloud run deploy devops-frontend \
-            --image ${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/devops-repo/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.GCP_REGION }} \
-            --allow-unauthenticated \
-            --port 3000 \
-            --min-instances 2 \
-            --max-instances 10 \
-            --memory 512Mi \
-            --cpu 1 \
+          az containerapp create \
+            --name devops-frontend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
+            --target-port 3000 \
+            --ingress external \
+            --registry-server ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }} \
+            --registry-username ${{ secrets.AZURE_REGISTRY_USERNAME }} \
+            --registry-password ${{ secrets.AZURE_REGISTRY_PASSWORD }} \
+            --environment devops-env \
+            --env-vars "NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}" \
+            --cpu 0.5 --memory 1.0Gi \
+            --min-replicas 1 --max-replicas 3 || \
+          az containerapp update \
+            --name devops-frontend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
             --set-env-vars "NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}"
 
   # ==================== POST-DEPLOYMENT ====================
   notify:
     name: Deployment Summary
     runs-on: ubuntu-latest
-    needs: [deploy-aws, deploy-gcp]
+    needs: [deploy-aws, deploy-azure]
     if: always()
 
     steps:
@@ -126,6 +142,6 @@ jobs:
           echo "| Platform | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| AWS ECS | ${{ needs.deploy-aws.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| GCP Cloud Run | ${{ needs.deploy-gcp.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Azure Container Apps | ${{ needs.deploy-azure.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
