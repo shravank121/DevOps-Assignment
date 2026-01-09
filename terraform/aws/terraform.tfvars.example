@@ -1,0 +1,6 @@
+aws_region     = "ap-south-1"
+project_name   = "devops"
+environment    = "prod"
+vpc_cidr       = "10.0.0.0/16"
+backend_image  = "813565873625.dkr.ecr.ap-south-1.amazonaws.com/devops-backend:latest"
+frontend_image = "813565873625.dkr.ecr.ap-south-1.amazonaws.com/devops-frontend:latest"
