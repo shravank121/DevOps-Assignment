@@ -31,3 +31,9 @@ variable "frontend_image" {
   description = "Frontend Docker image"
   type        = string
 }
+
+variable "alert_email" {
+  description = "Email address for CloudWatch alerts"
+  type        = string
+  default     = "your-email@example.com"
+}

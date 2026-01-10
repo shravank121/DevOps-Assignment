@@ -27,3 +27,8 @@ output "log_analytics_workspace" {
   description = "Log Analytics workspace name"
   value       = azurerm_log_analytics_workspace.main.name
 }
+
+output "action_group_id" {
+  description = "Monitor action group ID"
+  value       = azurerm_monitor_action_group.main.id
+}
