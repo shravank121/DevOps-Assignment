@@ -8,6 +8,11 @@ output "alb_arn" {
   value       = aws_lb.main.arn
 }
 
+output "alb_arn_suffix" {
+  description = "ARN suffix of the load balancer"
+  value       = aws_lb.main.arn_suffix
+}
+
 output "backend_target_group_arn" {
   description = "ARN of backend target group"
   value       = aws_lb_target_group.backend.arn

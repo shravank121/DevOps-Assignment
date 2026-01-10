@@ -48,3 +48,9 @@ variable "acr_password" {
   type        = string
   sensitive   = true
 }
+
+variable "alert_email" {
+  description = "Email address for alerts"
+  type        = string
+  default     = "your-email@example.com"
+}

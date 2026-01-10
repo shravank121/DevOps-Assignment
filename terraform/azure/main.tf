@@ -228,3 +228,100 @@ resource "azurerm_key_vault_secret" "sample" {
   value        = "sample-value"
   key_vault_id = azurerm_key_vault.main.id
 }
+
+# Action Group for Alerts
+resource "azurerm_monitor_action_group" "main" {
+  name                = "${var.project_name}-${var.environment}-alerts"
+  resource_group_name = azurerm_resource_group.main.name
+  short_name          = "devopsalert"
+
+  email_receiver {
+    name          = "sendtoadmin"
+    email_address = var.alert_email
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# CPU Alert for Backend
+resource "azurerm_monitor_metric_alert" "backend_cpu" {
+  name                = "${var.project_name}-${var.environment}-backend-cpu-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.backend.id]
+  description         = "Alert when backend CPU usage is high"
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.App/containerApps"
+    metric_name      = "UsageNanoCores"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 350000000 # 70% of 0.5 vCPU
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.main.id
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# Memory Alert for Backend
+resource "azurerm_monitor_metric_alert" "backend_memory" {
+  name                = "${var.project_name}-${var.environment}-backend-memory-high"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.backend.id]
+  description         = "Alert when backend memory usage is high"
+  severity            = 2
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.App/containerApps"
+    metric_name      = "WorkingSetBytes"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 858993459 # 80% of 1GB
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.main.id
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# Request Count Alert
+resource "azurerm_monitor_metric_alert" "request_count" {
+  name                = "${var.project_name}-${var.environment}-high-request-count"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_container_app.backend.id]
+  description         = "Alert when request count is unusually high"
+  severity            = 3
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.App/containerApps"
+    metric_name      = "Requests"
+    aggregation      = "Total"
+    operator         = "GreaterThan"
+    threshold        = 1000
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.main.id
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
